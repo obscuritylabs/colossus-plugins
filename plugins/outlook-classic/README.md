@@ -1,6 +1,6 @@
 # Outlook Classic plugin
 
-Status: read-only alpha, base version `0.1.0-alpha.2`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
+Status: read-only alpha, base version `0.1.0-alpha.3`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
 **classic Outlook for Windows**, a configured mail profile, and a signed-in
 interactive user. The proposed plugin ID is `outlook-classic`, with MCP server ID
 `outlook-classic/mail` and skill ID `outlook-classic/mail`.
@@ -151,8 +151,12 @@ release. Every call has bounded input, time, result count, and output size.
 | `get_message` | Return selected fields and bounded plain-text content for an explicit message |
 | `list_attachments` | Return metadata; do not save or open files implicitly |
 
-The implementation uses `StoreID` plus `EntryID` identifiers inside opaque handles. Resolve
-them afresh and report missing or moved items; do not promise identity survives a
+Alpha.3 uses compact opaque handles containing a 128-bit store fingerprint, an
+`EntryID`, and a copying-error checksum. It resolves the store afresh from the
+current Outlook profile on each call and rejects missing or ambiguous matches.
+No handle cache is persisted. The checksum detects mistakes; it grants no authority.
+Reacquire handles from discovery when upgrading from alpha.1/alpha.2. Report
+missing or moved items; do not promise identity survives a
 move. Restrict initial content operations to mail items and preserve unread state.
 Escape structured filter values instead of accepting arbitrary Outlook query or
 PowerShell expressions. Do not return COM objects or unrestricted property bags.

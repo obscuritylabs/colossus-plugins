@@ -66,7 +66,7 @@ The OCI manifest and checksums are signed with this repository's GitHub Actions 
 
 Publication required passing local live Outlook evidence matching these sources. The attached outlook-classic-live.json records 18 checks against two synthetic PSTs and bounded real Inbox reads; no personal message content is included. CI rebuilds the tested sources with this preview version; the local report identifies the separately tested local runtime.
 
-Known alpha limits: direct COM attachment does not work inside the tested Colossus windows_job/AppContainer boundary. Hosted CI does not exercise a real mailbox. Full mailbox/Office compatibility remains unvalidated. Do not disable isolation as an installation workaround.
+Known alpha limits: Colossus 0.11.4 rejects its injected plugin environment variables, blocking automatic plugin MCP discovery. The installation guide describes explicit operator MCP registration as a separate route. Direct COM attachment does not work inside the tested Colossus windows_job/AppContainer boundary. Hosted CI does not exercise a real mailbox. Full mailbox/Office compatibility remains unvalidated. Do not disable isolation as an installation workaround.
 
 See [installation and verification](https://github.com/obscuritylabs/colossus-plugins/blob/$GITHUB_SHA/docs/releases.md). Keep every file in the portable ZIP together. The OCI archive includes the plugin and its signing evidence for disconnected verification.
 EOF

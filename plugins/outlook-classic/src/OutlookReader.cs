@@ -55,7 +55,8 @@ public sealed class OutlookReader
         using var com = new ComScope();
         dynamic app = com.Attach();
         dynamic session = com.Own((object)app.Session);
-        dynamic parent = com.Own((object)session.GetFolderFromID(handle.EntryId, handle.StoreId));
+        string storeId = ResolveStoreId(session, handle.StoreKey);
+        dynamic parent = com.Own((object)session.GetFolderFromID(handle.EntryId, storeId));
         dynamic folders = com.Own((object)parent.Folders);
         var rows = new List<object>();
         int count = folders.Count;
@@ -82,7 +83,8 @@ public sealed class OutlookReader
         using var com = new ComScope();
         dynamic app = com.Attach();
         dynamic session = com.Own((object)app.Session);
-        dynamic folder = com.Own((object)session.GetFolderFromID(handle.EntryId, handle.StoreId));
+        string storeId = ResolveStoreId(session, handle.StoreKey);
+        dynamic folder = com.Own((object)session.GetFolderFromID(handle.EntryId, storeId));
         dynamic items = com.Own((object)folder.Items);
         if (unreadOnly) items = com.Own((object)items.Restrict("[Unread] = true"));
         items.Sort("[ReceivedTime]", true);
@@ -101,7 +103,7 @@ public sealed class OutlookReader
             if (!string.IsNullOrEmpty(subjectContains) && !subject.Contains(subjectContains, StringComparison.OrdinalIgnoreCase)) continue;
             rows.Add(new
             {
-                messageHandle = Handles.Encode("message", handle.StoreId, (string)mail.EntryID),
+                messageHandle = Handles.Encode("message", storeId, (string)mail.EntryID),
                 subject = Handles.Text(subject, 512),
                 senderName = Handles.Text((string?)mail.SenderName, 256),
                 receivedAt = ((DateTime)mail.ReceivedTime).ToUniversalTime().ToString("O"),
@@ -124,7 +126,8 @@ public sealed class OutlookReader
         using var com = new ComScope();
         dynamic app = com.Attach();
         dynamic session = com.Own((object)app.Session);
-        dynamic mail = com.Own((object)session.GetItemFromID(handle.EntryId, handle.StoreId));
+        string storeId = ResolveStoreId(session, handle.StoreKey);
+        dynamic mail = com.Own((object)session.GetItemFromID(handle.EntryId, storeId));
         RequireMail(mail);
         string body = maxBodyChars == 0 ? "" : (string?)mail.Body ?? "";
         return new
@@ -149,7 +152,8 @@ public sealed class OutlookReader
         using var com = new ComScope();
         dynamic app = com.Attach();
         dynamic session = com.Own((object)app.Session);
-        dynamic mail = com.Own((object)session.GetItemFromID(handle.EntryId, handle.StoreId));
+        string storeId = ResolveStoreId(session, handle.StoreKey);
+        dynamic mail = com.Own((object)session.GetItemFromID(handle.EntryId, storeId));
         RequireMail(mail);
         dynamic attachments = com.Own((object)mail.Attachments);
         int count = attachments.Count;
@@ -162,6 +166,24 @@ public sealed class OutlookReader
             rows.Add(new { index = i, name = Handles.Text((string?)attachment.FileName, 512), size = (int)attachment.Size });
         }
         return new { items = rows, nextOffset = end < count ? (int?)end : null };
+    }
+
+    private static string ResolveStoreId(dynamic session, string key)
+    {
+        using var com = new ComScope();
+        dynamic stores = com.Own((object)session.Stores);
+        string? match = null;
+        int count = stores.Count;
+        for (int i = 1; i <= count; i++)
+        {
+            using var item = new ComScope();
+            dynamic store = item.Own((object)stores.Item(i));
+            string id = (string)store.StoreID;
+            if (Handles.StoreKey(id) != key) continue;
+            if (match is not null) throw new ArgumentException("Outlook store fingerprint is ambiguous; repeat store discovery.");
+            match = id;
+        }
+        return match ?? throw new ArgumentException("Outlook store is no longer available; repeat store discovery.");
     }
 
     private static void RequireMail(dynamic item)

@@ -10,6 +10,9 @@ Use the tools exposed by `outlook-classic/mail`. Start with `get_status`, then
 `list_stores` and `list_folders` to identify the requested store and folder. Use
 returned opaque handles; do not invent identifiers or reuse a handle after a
 reported move/removal.
+Copy the complete handle verbatim, including its checksum. If a handle is reported
+as altered, repeat the preceding lookup and retry once with its exact returned value.
+Old alpha.1/alpha.2 handles must be reacquired after upgrading.
 
 Search with `search_messages`. Follow `nextOffset` when present, including for an
 empty matching page; each request scans at most 500 items. Folder changes can shift

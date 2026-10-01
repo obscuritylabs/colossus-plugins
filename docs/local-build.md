@@ -2,7 +2,7 @@
 
 ## Live acceptance on 2026-10-01
 
-The `0.1.0-alpha.2` Windows x64 build passed all 18 live acceptance checks against
+The `0.1.0-alpha.3` Windows x64 build passed all 18 live acceptance checks against
 classic Outlook `16.0.0.20326` in the interactive user session. The
 [sanitized report](../validation/outlook-classic-live.json) records the source
 fingerprint, complete runtime hash, machine/Office versions, and each result.
@@ -20,6 +20,16 @@ builder was also rerun from scratch; all 18 checks and cleanup passed again.
 Live testing found a UTF-16 truncation defect in alpha.1: a character limit could
 split an emoji and return a replacement character. Alpha.2 preserves surrogate
 pairs and passes both a component regression and the live case.
+
+A real Colossus 0.11.4 / `gpt-6-luna` agent also exercised the signed alpha.2
+distribution. Automatic plugin MCP discovery failed because Colossus injects
+reserved plugin environment variables and then rejects them. The selected skill
+worked; explicit MCP registration reached Outlook and searched synthetic mail.
+The model altered the long base64 handles twice, preventing completion. Alpha.3
+replaces them with short stateless store fingerprints and item identifiers plus a
+checksum. Component tests and the repeated live suite cover altered handles,
+unknown stores, cross-store resolution, and restart. These checks do not fix the
+host's automatic-discovery defect or establish AppContainer compatibility.
 
 During initial fixture setup, Outlook placed 506 synthetic unsent messages in the
 default Drafts folder. All 506 were identified and moved into the local test PSTs;

@@ -64,7 +64,8 @@ export function addRelease(catalog, manifest, evidence, releasedAt = new Date().
         'Same logged-in interactive Windows user session as Outlook; not a Windows service or container.',
         'Direct COM is unsupported inside the tested Colossus windows_job/AppContainer boundary.',
         'Read-only alpha: mailbox integration coverage is incomplete; no sending, editing, or attachment downloads.',
-        'OCI package signed with GitHub OIDC; Windows executable is not Authenticode-signed.'
+        'OCI package signed with GitHub OIDC; Windows executable is not Authenticode-signed.',
+        'Colossus 0.11.4 rejects its injected plugin environment variables during stdio registration; automatic plugin MCP discovery is blocked. Explicit operator MCP registration is a separate test route.'
       ] }]
   };
   const existing = plugin.releases.find(r => r.version === release.version);

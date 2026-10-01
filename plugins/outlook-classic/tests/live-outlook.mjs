@@ -9,7 +9,11 @@ const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8').replace(/^\uFEFF
 assert.equal(fixture.syntheticOnly, true);
 const report = { startedAt: new Date().toISOString(), checks: [], metrics: {}, personalContentLogged: false };
 const hash = text => createHash('sha256').update(text).digest('hex');
-const handle = (Kind, StoreId, EntryId) => Buffer.from(JSON.stringify({ Kind, StoreId, EntryId })).toString('base64');
+const handle = (kind, storeId, entryId) => {
+  const key = createHash('sha256').update(Buffer.from(storeId, 'hex')).digest('hex').slice(0, 32).toUpperCase();
+  const payload = `${kind === 'folder' ? 'f2' : 'm2'}.${key}.${entryId.toUpperCase()}`;
+  return `${payload}.${hash(payload).slice(0, 8).toUpperCase()}`;
+};
 const mailHandle = message => handle('message', fixture.stores[0].storeId, message.entryId);
 const folderHandle = (store, folder) => handle('folder', store.storeId, folder.entryId);
 const primary = fixture.stores[0];
@@ -163,6 +167,10 @@ try {
   await check('non-mail and nonexistent COM item handles fail safely', async () => {
     await client.rejected('get_message', { messageHandle: mailHandle({ entryId: fixture.nonMailEntryId }) });
     await client.rejected('get_message', { messageHandle: mailHandle({ entryId: 'AABBCCDD' }) });
+    const valid = mailHandle(fixture.messages[0]);
+    assert.ok(valid.length < 160, 'Synthetic handles must remain practical for agent reuse');
+    await client.rejected('get_message', { messageHandle: valid.slice(0, -1) + (valid.endsWith('A') ? 'B' : 'A') });
+    await client.rejected('get_message', { messageHandle: handle('message', 'AABB', fixture.messages[0].entryId) });
   });
   await check('handles from a second PST resolve within the correct store', async () => {
     const other = fixture.stores[1];

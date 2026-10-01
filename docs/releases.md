@@ -55,6 +55,35 @@ Activation is an explicit operator decision under a compatible execution policy.
 Enable only an accepted digest, then enable `outlook-classic/mail` with an explicit
 tool allowlist. The repository catalog cannot perform these actions automatically.
 
+**Colossus 0.11.4 integration defect:** the host injects `PLUGIN_ROOT` and
+`PLUGIN_DATA` into plugin stdio configuration, then rejects those same variables.
+The installed skill is available, but automatic plugin MCP discovery is blocked
+with `mcp_configuration_unavailable`. Inventory may still say "Configured"; inspect
+the agent's `plugin.inspect` diagnostics. This is separate from the AppContainer
+COM limitation. A tested operator configuration can register the exact verified
+installed executable under a standalone `mcp.servers` entry while selecting the
+installed `outlook-classic/mail` skill. That explicit registration is not evidence
+that the portable plugin route works, and it must not widen the execution boundary.
+
+For a compatible same-user execution policy, the explicit registration shape is:
+
+```yaml
+mcp:
+  servers:
+    outlook-classic-local:
+      transport: stdio
+      command: 'C:\ABSOLUTE\VERIFIED-INSTALLED-PLUGIN\bin\outlook-classic-mcp.exe'
+      args: [--stdio]
+      workingDirectory: 'C:\ABSOLUTE\VERIFIED-INSTALLED-PLUGIN'
+      allowedTools: [get_status, list_stores, list_folders, search_messages, get_message, list_attachments]
+```
+
+Use the actual immutable root returned by `plugins install`; retain required
+signature verification. Select `--skill outlook-classic/mail` and explicitly tell
+the agent to use server `outlook-classic-local`. The existing access policy must
+expose `mcp.search`, `mcp.tools`, and `mcp.call` and authorize their actions. This
+example supplies no provider, approval-mode, or sandbox override.
+
 The portable ZIP is a convenience distribution. Verify its checksum file with
 Cosign before comparing the ZIP's SHA-256:
 

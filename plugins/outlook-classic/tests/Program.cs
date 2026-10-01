@@ -14,7 +14,13 @@ static void Reject(Action action, string name)
 }
 
 var encoded = Handles.Encode("folder", "AABB", "0123");
-Check(Handles.Decode(encoded, "folder") == new ItemHandle("folder", "AABB", "0123"), "opaque handle round trip");
+Check(Handles.Decode(encoded, "folder") == new ItemHandle("folder", Handles.StoreKey("AABB"), "0123"), "opaque handle round trip");
+Check(Handles.StoreKey("aabb") == Handles.StoreKey("AABB"), "store identity ignores hexadecimal casing");
+Check(Handles.StoreKey("AABB") != Handles.StoreKey("AABC"), "different stores remain distinct");
+Check(Handles.Encode("folder", new string('A', 8192), "0123").Length == encoded.Length, "handle length does not grow with a PST path");
+Reject(() => Handles.Decode(encoded[..^1] + (encoded[^1] == 'A' ? 'B' : 'A'), "folder"), "altered checksum rejected");
+Reject(() => Handles.Decode(encoded.Replace(".0123.", ".0124."), "folder"), "altered item identifier rejected before COM");
+Reject(() => Handles.Decode(encoded + ".extra", "folder"), "extra handle segments rejected");
 Reject(() => Handles.Decode(encoded, "message"), "folder handles cannot address messages");
 Reject(() => Handles.Decode("not base64!", "folder"), "malformed handle rejected");
 Reject(() => Handles.Decode(new string('a', 24001), "folder"), "oversized handle rejected");
