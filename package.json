@@ -1,0 +1,15 @@
+{
+  "name": "colossus-plugin-release-tools",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test scripts/catalog.test.mjs",
+    "validate": "node scripts/catalog.mjs validate"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "semver": "7.8.5"
+  }
+}

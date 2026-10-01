@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Colossus Plugin Catalog (draft repository contract)",
+  "description": "Discovery metadata only. Does not grant runtime permissions or establish publisher trust.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "id", "name", "repository", "revision", "plugins"],
+  "properties": {
+    "$schema": { "const": "./schemas/catalog.schema.json" },
+    "schemaVersion": { "const": 1 },
+    "id": { "const": "com.obscuritylabs.colossus.plugins" },
+    "name": { "type": "string", "minLength": 1 },
+    "repository": { "type": "string", "pattern": "^https://" },
+    "revision": { "type": "integer", "minimum": 0 },
+    "plugins": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/plugin" }
+    }
+  },
+  "$defs": {
+    "nonemptyString": { "type": "string", "minLength": 1 },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "displayName", "description", "sourcePath", "releases"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^(?!.*(?:--|\\.\\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "displayName": { "$ref": "#/$defs/nonemptyString" },
+        "description": { "$ref": "#/$defs/nonemptyString" },
+        "sourcePath": {
+          "type": "string",
+          "pattern": "^plugins/[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "releases": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/release" }
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "channel", "releasedAt", "sourceCommit", "agentPluginsVersion", "minColossusVersion", "yanked", "artifacts"],
+      "properties": {
+        "version": { "$ref": "#/$defs/nonemptyString" },
+        "channel": { "enum": ["stable", "preview"] },
+        "releasedAt": { "type": "string", "format": "date-time" },
+        "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "agentPluginsVersion": { "const": "1.0.0" },
+        "minColossusVersion": { "$ref": "#/$defs/nonemptyString" },
+        "yanked": { "type": "boolean" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/artifact" }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "platform", "requirements"],
+      "properties": {
+        "reference": {
+          "description": "OCI repository reference pinned to the plugin manifest digest; never a tag, index digest, or layer digest.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.:-]*(?:/[a-z0-9][a-z0-9._-]*)+@sha256:[a-f0-9]{64}$"
+        },
+        "platform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["os", "architecture"],
+          "properties": {
+            "os": { "enum": ["windows", "linux", "darwin", "any"] },
+            "architecture": { "enum": ["amd64", "arm64", "386", "any"] },
+            "minimumOsVersion": { "$ref": "#/$defs/nonemptyString" }
+          }
+        },
+        "requirements": {
+          "description": "Human-readable prerequisites, not executable checks or permissions.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonemptyString" }
+        }
+      }
+    }
+  }
+}

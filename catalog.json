@@ -1,0 +1,9 @@
+{
+  "$schema": "./schemas/catalog.schema.json",
+  "schemaVersion": 1,
+  "id": "com.obscuritylabs.colossus.plugins",
+  "name": "Colossus Plugins",
+  "repository": "https://github.com/obscuritylabs/colossus-plugins",
+  "revision": 0,
+  "plugins": []
+}

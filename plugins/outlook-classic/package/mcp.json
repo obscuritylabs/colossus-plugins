@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "mail": {
+      "type": "stdio",
+      "command": "./bin/outlook-classic-mcp.exe",
+      "args": ["--stdio"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

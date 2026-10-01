@@ -1,0 +1,148 @@
+name: Build and publish plugins
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore: [catalog.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize main releases/catalog writes. New pushes do not cancel publication.
+concurrency:
+  group: plugins-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-dotnet@e2cf7c663b93c38144629f5d40b62d3eaaa63a03
+        with:
+          global-json-file: global.json
+      - name: Validate catalog tooling
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Catalog tests failed' }
+          npm run validate
+          if ($LASTEXITCODE -ne 0) { throw 'Catalog validation failed' }
+      - name: Build and test Windows package
+        shell: pwsh
+        run: |
+          $baseVersion = (Get-Content -Raw plugins/outlook-classic/package/plugin.json | ConvertFrom-Json).version
+          $separator = if ($baseVersion.Contains('-')) { '.' } else { '-' }
+          $version = "$baseVersion${separator}ci.$env:GITHUB_RUN_NUMBER.$env:GITHUB_RUN_ATTEMPT"
+          ./scripts/Build-OutlookClassic.ps1 -DotnetPath (Get-Command dotnet).Source -Version $version
+      - name: Validate and package with pinned Colossus CLI
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'colossus.zip'
+          Invoke-WebRequest 'https://github.com/obscuritylabs/Colossus/releases/download/v0.11.4/colossus-0.11.4-x86_64-pc-windows-msvc.zip' -OutFile $zip
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '97983672b3e6f764e2865009a6353b7ebb3c84f9b01256a305a14eb0223b9b84') { throw 'Colossus checksum mismatch' }
+          $cliRoot = Join-Path $env:RUNNER_TEMP 'colossus-cli'
+          Expand-Archive $zip $cliRoot
+          $cli = (Get-ChildItem $cliRoot -Recurse -Filter colossus.exe | Select-Object -First 1).FullName
+          $env:COLOSSUS_HOME = Join-Path $env:LOCALAPPDATA ('ColossusPluginCI-' + [Guid]::NewGuid().ToString('N'))
+          & $cli config init
+          if ($LASTEXITCODE -ne 0) { throw 'Colossus initialization failed' }
+          ./scripts/Package-OutlookClassic.ps1 -ColossusPath $cli
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: outlook-classic-release
+          path: dist/release/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: outlook-classic-release
+          path: dist/release
+      - uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4
+        with:
+          version: 1.3.4
+      - uses: sigstore/cosign-installer@828df1e55de306ba29db814d6057ddae71883cda
+        with:
+          cosign-release: v3.1.3
+      - name: Install pinned Colossus verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 'https://github.com/obscuritylabs/Colossus/releases/download/v0.11.4/colossus-0.11.4-x86_64-unknown-linux-musl.tar.gz' -o "$RUNNER_TEMP/colossus.tar.gz"
+          echo 'fa1b522750145c4c51d16f6e662c5c8afb7ff30f9f3f78114742ae69f2d91375  '"$RUNNER_TEMP/colossus.tar.gz" | sha256sum --check
+          mkdir "$RUNNER_TEMP/colossus-cli"
+          tar -xzf "$RUNNER_TEMP/colossus.tar.gz" -C "$RUNNER_TEMP/colossus-cli"
+          cli=$(find "$RUNNER_TEMP/colossus-cli" -type f -name colossus -print -quit)
+          test -n "$cli"
+          chmod +x "$cli"
+          echo "$(dirname "$cli")" >> "$GITHUB_PATH"
+      - name: Publish, sign, and verify registry round trip
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-plugin.sh
+      - name: Update catalog after verified publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Incorporate main changes that arrived while the Windows build ran.
+          git fetch origin main
+          git checkout -B main origin/main
+          node scripts/catalog.mjs add
+          npm run validate
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalog.json
+          if ! git diff --cached --quiet; then
+            version=$(jq -r .version dist/release/release.json)
+            git commit -m "Publish outlook-classic $version catalog entry"
+            git push origin HEAD:main
+          fi
+      - name: Publish GitHub prerelease assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(jq -r .version dist/release/release.json)
+          source_commit=$(jq -r .sourceCommit dist/release/release.json)
+          cp catalog.json dist/release/catalog.json
+          gh release create "outlook-classic/v$version" \
+            --target "$source_commit" --title "Outlook Classic $version" --prerelease \
+            --notes-file dist/release/release-notes.md \
+            dist/release/outlook-classic-windows-amd64.zip \
+            dist/release/outlook-classic-oci.tar.gz \
+            dist/release/SHA256SUMS dist/release/SHA256SUMS.sigstore.json \
+            dist/release/manifest.json dist/release/manifest.sigstore.json \
+            dist/release/release.json dist/release/catalog.json

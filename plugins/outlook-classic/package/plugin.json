@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "outlook-classic",
+  "version": "0.1.0-alpha.1",
+  "description": "Read-only access to classic Outlook on Windows through a local COM MCP server.",
+  "author": { "name": "Obscurity Labs" },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/obscuritylabs/colossus-plugins",
+  "keywords": ["outlook", "email", "windows", "com", "read-only"]
+}

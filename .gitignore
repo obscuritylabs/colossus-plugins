@@ -1,0 +1,9 @@
+/dist/
+/node_modules/
+**/bin/
+**/obj/
+**/TestResults/
+.local/
+.env
+.env.*
+!.env.example

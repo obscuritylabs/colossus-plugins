@@ -1,0 +1,11 @@
+schemaVersion: 3
+storage:
+  location: home_workspace
+  path: state.redb
+plugins:
+  trustProfiles:
+    github:
+      mode: required
+      identities:
+        - issuer: https://token.actions.githubusercontent.com
+          subject: https://github.com/obscuritylabs/colossus-plugins/.github/workflows/plugins.yml@refs/heads/main
