@@ -85,6 +85,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Require current live Outlook test evidence
+        run: node scripts/verify-live-evidence.mjs check
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: outlook-classic-release
@@ -145,4 +147,5 @@ jobs:
             dist/release/outlook-classic-oci.tar.gz \
             dist/release/SHA256SUMS dist/release/SHA256SUMS.sigstore.json \
             dist/release/manifest.json dist/release/manifest.sigstore.json \
-            dist/release/release.json dist/release/catalog.json
+            dist/release/release.json dist/release/catalog.json \
+            dist/release/outlook-classic-live.json

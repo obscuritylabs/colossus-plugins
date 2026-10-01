@@ -45,6 +45,14 @@ public static partial class Handles
         if (offset is < 0 or > 1000000) throw new ArgumentException("offset must be between 0 and 1000000.");
     }
 
-    public static string Text(string? value, int maximum) =>
-        string.IsNullOrEmpty(value) ? "" : value.Length <= maximum ? value : value[..maximum];
+    public static string Text(string? value, int maximum)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Length <= maximum) return value;
+        // String lengths are UTF-16 code units. Do not leave half of a valid
+        // surrogate pair for the JSON serializer to replace with U+FFFD.
+        if (maximum > 0 && char.IsHighSurrogate(value[maximum - 1]) && char.IsLowSurrogate(value[maximum]))
+            maximum--;
+        return value[..maximum];
+    }
 }

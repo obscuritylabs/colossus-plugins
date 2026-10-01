@@ -1,6 +1,6 @@
 # Outlook Classic plugin
 
-Status: read-only alpha, base version `0.1.0-alpha.1`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
+Status: read-only alpha, base version `0.1.0-alpha.2`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
 **classic Outlook for Windows**, a configured mail profile, and a signed-in
 interactive user. The proposed plugin ID is `outlook-classic`, with MCP server ID
 `outlook-classic/mail` and skill ID `outlook-classic/mail`.
@@ -39,8 +39,10 @@ deployment. Do not disable isolation as an installation workaround. See the
 [build report](../../docs/local-build.md) for test scope and the bridge follow-up.
 
 Main-branch CI publishes signed OCI previews to GHCR and adds verified digests to
-the catalog. The Windows executable is not Authenticode-signed. Actual mail reads
-still need dedicated synthetic-mailbox integration tests. See the
+the catalog. The Windows executable is not Authenticode-signed. All 18 local live
+checks passed on 2026-10-01, covering two synthetic PSTs and bounded reads of two
+real unread Inbox messages. Publication requires evidence matching the current
+sources. Broader Office and mailbox compatibility remains unvalidated. See the
 [release and installation guide](../../docs/releases.md).
 
 With an existing configured Colossus CLI, package the staged directory:

@@ -23,6 +23,9 @@ Reject(() => Handles.Page(51, 0), "result count bounded");
 Reject(() => Handles.Page(1, -1), "negative page offset rejected");
 Reject(() => new OutlookReader().GetMessage("invalid", 5), "bad handles rejected before COM attachment");
 Check(Handles.Text("邮件 🔎", 2) == "邮件", "Unicode body bound");
+Check(Handles.Text("🔎 sample", 1) == "", "truncation never returns half an emoji");
+Check(Handles.Text("a🔎b", 2) == "a", "truncation backs up before a surrogate pair");
+Check(Handles.Text("a🔎b", 3) == "a🔎", "complete emoji fits within the UTF-16 limit");
 
 using (var sta = new StaDispatcher())
 {

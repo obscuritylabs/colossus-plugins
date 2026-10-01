@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "testedAt": "2026-10-01T12:46:48.0637754Z",
+  "sourceFingerprint": "55e7952b5610ba263b44e799cab5946ba14019cf34a4c57ded4e3b050852f56a",
+  "version": "0.1.0-alpha.2",
+  "runtimeSha256": "25c45e18b2b50ef5a604d361cac44a65d9e88a54093af68256ea72096a52da6b",
+  "colossusVersion": "0.11.4",
+  "backend": "windows_job",
+  "passed": false,
+  "exitCode": 1,
+  "timedOut": false,
+  "resourceLimitExceeded": null,
+  "outputTruncated": false,
+  "connected": false,
+  "error": "Outlook COM unavailable (HRESULT 0x800401E3). Check that classic Outlook is open in the same interactive user session and permitted by the execution policy.",
+  "conclusion": "Direct Outlook COM access from the tested Colossus AppContainer remains unsupported. A reviewed user-session bridge or host integration is required."
+}

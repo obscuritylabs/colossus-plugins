@@ -49,9 +49,10 @@ jq --arg repository "$repository" --arg runUrl "$GITHUB_SERVER_URL/$GITHUB_REPOS
   '. + {repository: $repository, verified: true, workflowRun: $runUrl}' \
   "$release_dir/release.json" > "$release_dir/release.tmp.json"
 mv "$release_dir/release.tmp.json" "$release_dir/release.json"
+cp validation/outlook-classic-live.json "$release_dir/outlook-classic-live.json"
 (
   cd "$release_dir"
-  sha256sum outlook-classic-windows-amd64.zip outlook-classic-oci.tar.gz manifest.json manifest.sigstore.json release.json > SHA256SUMS
+  sha256sum outlook-classic-windows-amd64.zip outlook-classic-oci.tar.gz manifest.json manifest.sigstore.json release.json outlook-classic-live.json > SHA256SUMS
   cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
 )
 cat > "$release_dir/release-notes.md" <<EOF
@@ -62,6 +63,8 @@ OCI artifact: \`$reference\`
 Runs beside classic Outlook in the same logged-in user session. Includes six bounded read-only tools; no mail sending, editing, or attachment downloads. New Outlook is outside scope.
 
 The OCI manifest and checksums are signed with this repository's GitHub Actions identity. CI built the self-contained Windows package, exercised component/MCP/catalog checks, and verified the signed artifact after pulling it from GHCR with Colossus 0.11.4. The Windows EXE is not Authenticode-signed.
+
+Publication required passing local live Outlook evidence matching these sources. The attached outlook-classic-live.json records 18 checks against two synthetic PSTs and bounded real Inbox reads; no personal message content is included. CI rebuilds the tested sources with this preview version; the local report identifies the separately tested local runtime.
 
 Known alpha limits: direct COM attachment does not work inside the tested Colossus windows_job/AppContainer boundary. Hosted CI does not exercise a real mailbox. Full mailbox/Office compatibility remains unvalidated. Do not disable isolation as an installation workaround.
 

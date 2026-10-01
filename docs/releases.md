@@ -76,12 +76,16 @@ The [`plugins.yml`](../.github/workflows/plugins.yml) workflow:
    locked NuGet dependencies. It stages licenses and dependency notices.
 2. Uses checksum-pinned Colossus 0.11.4 to validate and package the plugin twice,
    requiring identical manifest digests.
-3. On `main` only, pushes to GHCR using `GITHUB_TOKEN` with `packages: write`.
+3. Requires passing [local live evidence](../validation/outlook-classic-live.json)
+   matching the current runtime, dependency, build, and test sources. Changed
+   sources cannot publish using stale evidence. On `main` only, pushes to GHCR
+   using `GITHUB_TOKEN` with `packages: write`.
    GitHub OIDC signs the exact manifest bytes; ORAS attaches the standard bundle.
 4. Pulls the package and signature into a fresh layout and verifies the exact
    digest using Colossus's required signer profile. It signs release checksums too.
 5. Adds the verified digest to the catalog and publishes a GitHub prerelease with
-   portable ZIP, signed OCI layout, checksums, signatures, and catalog snapshot.
+   portable ZIP, signed OCI layout, checksums, signatures, catalog snapshot, and
+   sanitized local live-test evidence included in the signed checksums.
 
 Actions are pinned by commit. No Docker Hub credential or long-lived signing key
 is needed. Publishing needs repository Contents write, Packages write, and OIDC
@@ -105,3 +109,32 @@ To add another plugin, give it its own package/src/tests directory and GHCR
 repository, add its platform build job, and extend the catalog generator with its
 compatibility requirements. Share the verified-publication pattern; do not publish
 unbuilt catalog entries.
+
+## Re-run the local Outlook acceptance suite
+
+Run PowerShell 7 in STA mode as the logged-in Outlook user, with classic Outlook
+already open. The suite creates two local synthetic PSTs under ignored `.local/`,
+tests 502 bulk messages plus Unicode, attachment, unread-state, and non-mail
+fixtures, and detaches both PSTs afterward. It never sends messages. The optional
+Inbox check reads at most three messages and logs only counts and outcomes.
+
+```powershell
+./scripts/Build-OutlookClassic.ps1
+$build = Get-Content -Raw .local/last-outlook-build.json | ConvertFrom-Json
+./scripts/Test-OutlookClassicLive.ps1 -Executable $build.executable -IncludeDefaultInbox
+$live = Get-Content -Raw .local/last-outlook-live-test.json | ConvertFrom-Json
+node scripts/verify-live-evidence.mjs record $live.reportPath
+node scripts/verify-live-evidence.mjs check
+```
+
+The script exits with the test status; run each command after the previous one
+finishes. To reuse an existing generated PST fixture, add `-ExistingFixture` with
+the `fixturePath` from the last live-test receipt. No personal message bodies,
+subjects, addresses, or handles go into the committed evidence. Review and commit
+the generated evidence with the runtime change.
+
+The evidence binds the tested local runtime files and source fingerprint. CI
+rebuilds those sources with a unique preview version and runs its own protocol
+checks; it does not run Outlook on a hosted runner. Live evidence covers this
+interactive Windows/classic Outlook configuration, not untested Office builds,
+shared-mailbox permission models, or AppContainer execution.

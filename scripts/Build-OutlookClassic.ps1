@@ -2,6 +2,8 @@
 param([string]$DotnetPath = '', [string]$Version = '', [switch]$SkipChecks)
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$sourceFingerprint = (& node (Join-Path $PSScriptRoot 'verify-live-evidence.mjs') fingerprint).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'Source fingerprint failed.' }
 if (-not $DotnetPath) {
     $localDotnet = Join-Path $repoRoot '.local\toolchains\dotnet\dotnet.exe'
     $DotnetPath = if (Test-Path -LiteralPath $localDotnet) { $localDotnet } else { 'dotnet' }
@@ -50,7 +52,11 @@ try {
     }
     $portableZip = Join-Path $buildRoot 'outlook-classic-windows-amd64.zip'
     Compress-Archive -LiteralPath $packageRoot -DestinationPath $portableZip -CompressionLevel Optimal
+    $runtimeFingerprint = (& node (Join-Path $PSScriptRoot 'verify-live-evidence.mjs') runtime-fingerprint (Join-Path $packageRoot 'bin')).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Runtime fingerprint failed.' }
     $receipt = [ordered]@{
+        sourceFingerprint = $sourceFingerprint
+        runtimeSha256 = $runtimeFingerprint
         version = $manifest.version
         packageRoot = $packageRoot
         executable = Join-Path $packageRoot 'bin\outlook-classic-mcp.exe'
@@ -59,6 +65,8 @@ try {
         portableZipSha256 = (Get-FileHash -LiteralPath $portableZip -Algorithm SHA256).Hash.ToLowerInvariant()
         checksSkipped = [bool]$SkipChecks
     }
+    $afterBuild = (& node (Join-Path $PSScriptRoot 'verify-live-evidence.mjs') fingerprint).Trim()
+    if ($LASTEXITCODE -ne 0 -or $afterBuild -ne $sourceFingerprint) { throw 'Source changed during the build; rebuild before testing.' }
     $receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $repoRoot '.local\last-outlook-build.json') -Encoding utf8
     $receipt | ConvertTo-Json
 } finally { Pop-Location }

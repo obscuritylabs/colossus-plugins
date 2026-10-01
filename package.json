@@ -4,7 +4,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "node --test scripts/catalog.test.mjs",
+    "test": "node --test scripts/catalog.test.mjs scripts/live-evidence.test.mjs",
     "validate": "node scripts/catalog.mjs validate"
   },
   "devDependencies": {

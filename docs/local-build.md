@@ -1,6 +1,45 @@
 # Local Outlook build and existing alternatives
 
-Historical local verification from 2026-09-29. The digest below identifies an
+## Live acceptance on 2026-10-01
+
+The `0.1.0-alpha.2` Windows x64 build passed all 18 live acceptance checks against
+classic Outlook `16.0.0.20326` in the interactive user session. The
+[sanitized report](../validation/outlook-classic-live.json) records the source
+fingerprint, complete runtime hash, machine/Office versions, and each result.
+
+The suite exercised all six MCP tools through the actual executable: two local
+synthetic PSTs, 502 bulk messages, nested and empty folders, non-mail items,
+pagination, literal filters, Unicode text and attachment names, bounded bodies,
+invalid handles, and process restart. It also read bounded content from two real
+unread Inbox messages; both stayed unread. Personal message content was not logged
+or saved in the report. Independent COM snapshots confirmed unchanged fixture
+counts, body hashes, unread flags, and modification times. Test PSTs were detached,
+and Outlook remained running with its original 16 stores. The corrected fixture
+builder was also rerun from scratch; all 18 checks and cleanup passed again.
+
+Live testing found a UTF-16 truncation defect in alpha.1: a character limit could
+split an emoji and return a replacement character. Alpha.2 preserves surrogate
+pairs and passes both a component regression and the live case.
+
+During initial fixture setup, Outlook placed 506 synthetic unsent messages in the
+default Drafts folder. All 506 were identified and moved into the local test PSTs;
+a fresh check found none remaining in Drafts. None were sent. The fixture builder
+now moves each generated item to the requested PST folder and verifies its parent
+before saving. These fixture writes are separate from the read-only MCP server.
+
+See [re-running the acceptance suite](releases.md#re-run-the-local-outlook-acceptance-suite).
+The CI publication gate rejects stale evidence when runtime, dependency, build,
+or test sources change. It does not claim hosted CI has a real Outlook profile.
+
+The alpha.2 binary was also retested through Colossus 0.11.4's `windows_job`
+AppContainer on October 1 ([isolation result](../validation/outlook-classic-isolation.json)).
+The process launched but COM attachment still failed
+with `0x800401E3`, without a timeout or output truncation. That deployment remains
+unsupported; the passing interactive suite does not override this failed gate.
+
+## Earlier connection and packaging verification
+
+Historical verification from 2026-09-29. The digest below identifies an
 unsigned development build, not a published release or a completed Colossus
 deployment. Current publication and installation details are in [releases.md](releases.md).
 
@@ -79,10 +118,12 @@ Colossus plugin or MCP server.
 
 ## Remaining acceptance work
 
-The normal-session connection test does not validate all mailbox operations. Test
-those against a synthetic mailbox: message and folder variants, shared stores,
-offline data, Object Model Guard prompts, pagination while mail moves, restart,
-and unread-state preservation. No personal message content was used in these tests.
+The October 1 suite supersedes the earlier connection-only result for the covered
+read operations. Shared-mailbox permission models, offline/uncached mail,
+protected items, Object Model Guard prompts, missing profiles, and pagination while
+mail moves still need separate acceptance scenarios. Other Office builds and
+32-bit Office are unvalidated. Passing on this machine is not production approval
+for every legacy environment.
 
 The direct stdio deployment gate failed under the tested AppContainer policy.
 An isolated Colossus deployment needs an explicit, authenticated user-session bridge
@@ -93,7 +134,7 @@ not advertise AppContainer compatibility.
 The subsequent release pipeline uses Apache-2.0, includes dependency notices,
 records the execution limitations, and validates with Colossus 0.11.4. It signs
 OCI manifests and requires a registry round trip before adding a catalog entry.
-Those distribution checks do not replace the remaining real-mailbox tests above.
+Those distribution checks do not replace the remaining compatibility tests above.
 
 [existing-release]: https://github.com/schirkan/outlook-mcp-server/releases/tag/v0.1.0
 [python-com]: https://github.com/Astral0/outlook-com-mcp
