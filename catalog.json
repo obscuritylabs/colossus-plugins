@@ -4,6 +4,41 @@
   "id": "com.obscuritylabs.colossus.plugins",
   "name": "Colossus Plugins",
   "repository": "https://github.com/obscuritylabs/colossus-plugins",
-  "revision": 0,
-  "plugins": []
+  "revision": 1,
+  "plugins": [
+    {
+      "name": "outlook-classic",
+      "displayName": "Outlook Classic",
+      "description": "Read-only access to classic Outlook on Windows through a local COM MCP server.",
+      "sourcePath": "plugins/outlook-classic",
+      "releases": [
+        {
+          "version": "0.1.0-alpha.1.ci.1.1",
+          "channel": "preview",
+          "releasedAt": "2026-10-01T11:56:14.088Z",
+          "sourceCommit": "d3631e9ef679171f37004a351d91de7f31bb9444",
+          "agentPluginsVersion": "1.0.0",
+          "minColossusVersion": "0.11.4",
+          "yanked": false,
+          "artifacts": [
+            {
+              "reference": "ghcr.io/obscuritylabs/colossus-plugin-outlook-classic@sha256:8a5325ed1cf5e1044f98fa9c1c5c227611ca1fd2601b4d998f33435a04316b9f",
+              "platform": {
+                "os": "windows",
+                "architecture": "amd64",
+                "minimumOsVersion": "Windows 11"
+              },
+              "requirements": [
+                "Classic Outlook for Windows x64, already running with a configured MAPI profile.",
+                "Same logged-in interactive Windows user session as Outlook; not a Windows service or container.",
+                "Direct COM is unsupported inside the tested Colossus windows_job/AppContainer boundary.",
+                "Read-only alpha: mailbox integration coverage is incomplete; no sending, editing, or attachment downloads.",
+                "OCI package signed with GitHub OIDC; Windows executable is not Authenticode-signed."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
