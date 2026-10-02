@@ -46,6 +46,7 @@ export function addRelease(catalog, manifest, evidence, releasedAt = new Date().
   assert.equal(evidence.verified, true, 'Registry round trip and trust verification required');
   assert.match(evidence.digest, /^sha256:[a-f0-9]{64}$/);
   assert.equal(evidence.repository, 'ghcr.io/obscuritylabs/colossus-plugin-outlook-classic');
+  const readOnly = manifest.keywords?.includes('read-only') === true;
   const result = structuredClone(catalog);
   let plugin = result.plugins.find(p => p.name === manifest.name);
   if (!plugin) {
@@ -63,7 +64,9 @@ export function addRelease(catalog, manifest, evidence, releasedAt = new Date().
         'Classic Outlook for Windows x64, already running with a configured MAPI profile.',
         'Same logged-in interactive Windows user session as Outlook; not a Windows service or container.',
         'Direct COM is unsupported inside the tested Colossus windows_job/AppContainer boundary.',
-        'Read-only alpha: mailbox integration coverage is incomplete; no sending, editing, or attachment downloads.',
+        readOnly
+          ? 'Read-only alpha: mailbox integration coverage is incomplete; no sending, editing, or attachment downloads.'
+          : 'Lists and manages mail, read state, same-store moves, soft deletion, and unsent drafts; no sending, permanent deletion, or attachment downloads.',
         'OCI package signed with GitHub OIDC; Windows executable is not Authenticode-signed.',
         'Colossus 0.11.4 rejects its injected plugin environment variables during stdio registration; automatic plugin MCP discovery is blocked. Explicit operator MCP registration is a separate test route.'
       ] }]
@@ -73,6 +76,7 @@ export function addRelease(catalog, manifest, evidence, releasedAt = new Date().
     assert.deepEqual({ ...existing, releasedAt, yanked: false }, release, 'Published versions are immutable');
     return result; // Idempotent retry; do not un-yank or change timestamps.
   }
+  plugin.description = manifest.description;
   plugin.releases.push(release);
   plugin.releases.sort((a, b) => semver.rcompare(a.version, b.version));
   result.plugins.sort((a, b) => a.name.localeCompare(b.name));
