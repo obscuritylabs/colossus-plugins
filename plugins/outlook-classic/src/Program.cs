@@ -11,9 +11,9 @@ internal static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        if (args is not ["--stdio"] and not ["--probe"] and not ["--version"])
+        if (args is not ["--stdio"] and not ["--probe"] and not ["--version"] and not ["--http-companion"])
         {
-            Console.Error.WriteLine("Usage: outlook-classic-mcp --stdio | --probe | --version");
+            Console.Error.WriteLine("Usage: outlook-classic-mcp --stdio | --http-companion | --probe | --version");
             return 2;
         }
         if (args[0] == "--version")
@@ -38,6 +38,11 @@ internal static class Program
                 Console.WriteLine(JsonSerializer.Serialize(new { connected = false, error = SafeError.Describe(ex) }));
                 return 1;
             }
+        }
+
+        if (args[0] == "--http-companion")
+        {
+            return await HttpCompanion.RunAsync(dispatcher, outlook);
         }
 
         // Do not load ambient appsettings or command-line configuration into this plugin.

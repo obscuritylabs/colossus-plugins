@@ -49,6 +49,8 @@ try {
     if (-not $SkipChecks) {
         & node (Join-Path $pluginRoot 'tests\mcp-smoke.mjs') (Join-Path $packageRoot 'bin\outlook-classic-mcp.exe')
         if ($LASTEXITCODE -ne 0) { throw 'MCP protocol checks failed.' }
+        & node (Join-Path $pluginRoot 'tests\http-companion-smoke.mjs') (Join-Path $packageRoot 'bin\outlook-classic-mcp.exe')
+        if ($LASTEXITCODE -ne 0) { throw 'HTTP companion checks failed.' }
     }
     $portableZip = Join-Path $buildRoot 'outlook-classic-windows-amd64.zip'
     Compress-Archive -LiteralPath $packageRoot -DestinationPath $portableZip -CompressionLevel Optimal

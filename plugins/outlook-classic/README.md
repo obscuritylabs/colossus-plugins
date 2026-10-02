@@ -38,6 +38,19 @@ Consequently direct stdio inside that boundary is not currently a supported
 deployment. Do not disable isolation as an installation workaround. See the
 [build report](../../docs/local-build.md) for test scope and the bridge follow-up.
 
+The binary now also contains a parent-owned `--http-companion` transport for the
+interactive Outlook user's session. Its parent supplies a 32-byte random bearer
+token as a 43-character base64url line on a private stdin pipe and keeps that pipe
+open. The helper binds one ephemeral `127.0.0.1` endpoint, reports its `/mcp` URL
+on stdout, and stops when the pipe closes. It rejects incorrect Host or Origin
+headers and missing or incorrect bearer credentials before MCP dispatch. The
+build checks verify those denials and tool discovery without opening a mailbox.
+Colossus Desktop does not yet launch or supervise this mode, provision its token,
+or bind it to an installed plugin digest. The packaged `mcp.json` still declares
+stdio, so this mode is not an AppContainer compatibility claim or a supported
+one-step installation path. The managed lifecycle is tracked in
+[Colossus issue #246](https://github.com/obscuritylabs/Colossus/issues/246).
+
 Main-branch CI publishes signed OCI previews to GHCR and adds verified digests to
 the catalog. The Windows executable is not Authenticode-signed. All 24 local live
 checks passed on 2026-10-02 for alpha.4, including write tests confined to
