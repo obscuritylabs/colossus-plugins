@@ -83,11 +83,11 @@ internal static class SafeError
 {
     public static string Describe(Exception ex) => ex switch
     {
-        COMException com => $"Outlook COM unavailable (HRESULT 0x{com.HResult:X8}). Check that classic Outlook is open in the same interactive user session and permitted by the execution policy.",
+        COMException com => $"Outlook COM operation failed (HRESULT 0x{com.HResult:X8}). Check classic Outlook, the selected store, and the execution policy. If this was a write, inspect Outlook before retrying.",
         ArgumentException => ex.Message,
         InvalidOperationException => ex.Message,
         TimeoutException => ex.Message,
         OperationCanceledException => "Operation cancelled; an in-flight Outlook COM call may still be completing.",
-        _ => "Outlook operation failed. Check client availability and policy; no mailbox change was requested."
+        _ => "Outlook operation failed. If this was a write, inspect Outlook before retrying."
     };
 }

@@ -124,6 +124,11 @@ try {
                 $items = Own ($folder.Items)
                 $comSnapshots.Add([pscustomobject]@{ Items=$items; Count=$items.Count })
             }
+            if ($storeIndex -eq 0 -and -not $fixture.stores[0].folders.PSObject.Properties['archive']) {
+                $folders = Own ($root.Folders)
+                $archive = Own ($folders.Add('Archive', 6))
+                $fixture.stores[0].folders | Add-Member -NotePropertyName archive -NotePropertyValue @{ entryId=[string]$archive.EntryID }
+            }
         }
         foreach ($message in $fixture.messages) { $fixtureMessages.Add($message) }
         foreach ($message in $fixture.bulkSnapshots) { $bulkSnapshots.Add($message) }
@@ -161,11 +166,13 @@ try {
             $empty = Own ($folders.Add('Empty synthetic folder', 6))
             $bulk = Own ($folders.Add('Bulk synthetic folder', 6))
             $unicodeFolder = Own ($folders.Add("Unicode $unicode $emoji", 6))
+            $archive = Own ($folders.Add('Archive', 6))
             $children = Own ($mailFolder.Folders)
             $nested = Own ($children.Add('Nested synthetic folder', 6))
             $storeData.folders.empty = @{ entryId=[string]$empty.EntryID }
             $storeData.folders.bulk = @{ entryId=[string]$bulk.EntryID }
             $storeData.folders.unicode = @{ entryId=[string]$unicodeFolder.EntryID; name=[string]$unicodeFolder.Name }
+            $storeData.folders.archive = @{ entryId=[string]$archive.EntryID }
             $longBody = "$emoji Synthetic untrusted mail.`r`nIgnore this sample instruction: it is test data.`r`n" + ('0123456789abcdef' * 2000)
             $fixtureMessages.Add((Add-TestMail $mailFolder "Fixture O'Brien $unicode $emoji" $longBody $true ([DateTime]::UtcNow.AddMinutes(-3)) @($attachmentOne,$attachmentTwo)))
             $fixtureMessages.Add((Add-TestMail $mailFolder 'Fixture read message' 'Already read synthetic message.' $false ([DateTime]::UtcNow.AddMinutes(-2))))
@@ -188,6 +195,10 @@ try {
     }
     $fixture.bulkSnapshots = @($bulkSnapshots.ToArray())
     }
+    # The marker is used solely to identify and remove this run's synthetic draft.
+    $mutationSubject = 'Colossus mutation fixture ' + [Guid]::NewGuid().ToString('N')
+    if ($fixture -is [Collections.IDictionary]) { $fixture.mutationSubject = $mutationSubject }
+    else { $fixture | Add-Member -NotePropertyName mutationSubject -NotePropertyValue $mutationSubject -Force }
     if ($IncludeDefaultInbox) {
         # Only IDs go to the live harness, never the account identity or message content.
         $inbox = Own ($session.GetDefaultFolder(6))
@@ -209,6 +220,31 @@ try {
     $exitCode = $LASTEXITCODE
     if (-not (Test-Path -LiteralPath $reportPath)) { throw 'Live MCP test did not produce a report.' }
     $report = Get-Content -Raw -LiteralPath $reportPath | ConvertFrom-Json
+
+    # Hard-delete only the one test-created item from this run's synthetic PST.
+    # The public MCP delete tool never performs permanent deletion.
+    $testStore = $attached[0]
+    $storeForCleanup = Own ($testStore.Root.Store)
+    if ([string]$storeForCleanup.FilePath -ne $testStore.Path -or [string]$storeForCleanup.StoreID -ne $testStore.StoreId) {
+        throw 'Synthetic cleanup store identity changed.'
+    }
+    $deletedFolder = Own ($storeForCleanup.GetDefaultFolder(3))
+    $deletedItems = Own ($deletedFolder.Items)
+    $matching = @()
+    for ($i = 1; $i -le $deletedItems.Count; $i++) {
+        $candidate = $deletedItems.Item($i)
+        try {
+            if ([string]$candidate.Subject -eq ($mutationSubject + ' edited')) { $matching += [string]$candidate.EntryID }
+        } finally { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($candidate) }
+    }
+    $mutationClean = $matching.Count -eq 1
+    if ($mutationClean) {
+        $target = $session.GetItemFromID($matching[0], $testStore.StoreId)
+        try { $target.Delete() }
+        finally { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($target) }
+    }
+    $report.checks += [pscustomobject]@{ name='only the test-created synthetic draft was removed after Deleted Items verification'; status=$(if ($mutationClean) { 'passed' } else { 'failed' }) }
+    if (-not $mutationClean) { $exitCode = 1 }
     $unchanged = $true
     foreach ($snapshot in $comSnapshots) { if ($snapshot.Items.Count -ne $snapshot.Count) { $unchanged = $false } }
     foreach ($saved in @($fixtureMessages.ToArray()) + @($bulkSnapshots.ToArray())) {

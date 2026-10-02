@@ -51,6 +51,7 @@ const requiredChecks = [
   'live COM status uses STA and reports classic Outlook',
   'store pagination discovers both synthetic PSTs without duplicates',
   'folder enumeration and paging preserve Unicode and nested folders',
+  'store default-folder discovery exposes the synthetic Inbox, Drafts, and Deleted Items',
   'message paging returns only mail items with no duplicates',
   'literal Unicode and apostrophe subject filters do not become queries',
   'unread-only filter returns the expected unread fixtures',
@@ -61,11 +62,16 @@ const requiredChecks = [
   'attachment metadata and pagination preserve names without exporting files',
   'non-mail and nonexistent COM item handles fail safely',
   'handles from a second PST resolve within the correct store',
+  'create and update an unsent draft only in the selected synthetic PST',
+  'read-state changes require the current synthetic source folder',
+  'move and archive stay inside the selected synthetic store',
+  'delete moves to Deleted Items and refuses permanent deletion',
   'default Inbox bounded live reads preserve unread flags (no content logged)',
   'MCP shutdown leaves Outlook available and handles survive a new process',
   'all synthetic unread flags still match after the live tool suite',
   'MCP exits cleanly with no diagnostic output',
-  'independent COM snapshots show unchanged fixture counts, bodies, unread flags, and modification times'
+  'independent COM snapshots show unchanged fixture counts, bodies, unread flags, and modification times',
+  'only the test-created synthetic draft was removed after Deleted Items verification'
 ];
 function validateReport(report) {
   assert.equal(report.passed, true, 'Live suite must pass');
@@ -73,6 +79,7 @@ function validateReport(report) {
   assert.equal(report.personalContentLogged, false);
   assert.ok(report.metrics.realMessagesRead >= 1 && report.metrics.realMessagesRead <= 3);
   assert.equal(report.metrics.bulkMessages, 502);
+  assert.equal(report.metrics.syntheticDraftCreated, 1);
   for (const name of requiredChecks)
     assert.equal(report.checks.filter(check => check.name === name && check.status === 'passed').length, 1, `Missing live check: ${name}`);
   assert.ok(report.checks.every(check => check.status === 'passed'));

@@ -56,15 +56,15 @@ cp validation/outlook-classic-live.json "$release_dir/outlook-classic-live.json"
   cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
 )
 cat > "$release_dir/release-notes.md" <<EOF
-Read-only classic Outlook MCP alpha for Windows 11 x64, packaged as Agent Plugins v1.
+Classic Outlook mail MCP alpha for Windows 11 x64, packaged as Agent Plugins v1.
 
 OCI artifact: \`$reference\`
 
-Runs beside classic Outlook in the same logged-in user session. Includes six bounded read-only tools; no mail sending, editing, or attachment downloads. New Outlook is outside scope.
+Runs beside classic Outlook in the same logged-in user session. Includes 14 bounded tools for mail listing, reading, read-state changes, same-store move/archive, move to Deleted Items, and unsent draft creation/update. No mail sending, permanent deletion, or attachment downloads. New Outlook is outside scope.
 
 The OCI manifest and checksums are signed with this repository's GitHub Actions identity. CI built the self-contained Windows package, exercised component/MCP/catalog checks, and verified the signed artifact after pulling it from GHCR with Colossus 0.11.4. The Windows EXE is not Authenticode-signed.
 
-Publication required passing local live Outlook evidence matching these sources. The attached outlook-classic-live.json records 18 checks against two synthetic PSTs and bounded real Inbox reads; no personal message content is included. CI rebuilds the tested sources with this preview version; the local report identifies the separately tested local runtime.
+Publication required passing local live Outlook evidence matching these sources. The attached outlook-classic-live.json records 24 checks against two synthetic PSTs, synthetic-only writes, and bounded real Inbox reads; no personal message content is included. CI rebuilds the tested sources with this preview version; the local report identifies the separately tested local runtime.
 
 Known alpha limits: Colossus 0.11.4 rejects its injected plugin environment variables, blocking automatic plugin MCP discovery. The installation guide describes explicit operator MCP registration as a separate route. Direct COM attachment does not work inside the tested Colossus windows_job/AppContainer boundary. Hosted CI does not exercise a real mailbox. Full mailbox/Office compatibility remains unvalidated. Do not disable isolation as an installation workaround.
 

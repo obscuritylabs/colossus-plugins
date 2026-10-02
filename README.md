@@ -5,12 +5,14 @@ Plugins for [Colossus](https://github.com/obscuritylabs/Colossus), using
 through **GitHub Container Registry**. Licensed under [Apache-2.0](LICENSE).
 
 The first plugin is **Outlook Classic**, a self-contained Windows x64 C# MCP
-server with six bounded read-only tools. It attaches to classic Outlook already
+server with 14 bounded MCP tools for listing, searching, reading, moving, archiving,
+soft deletion, read-state changes, and unsent drafts. It attaches to classic Outlook already
 running in the same logged-in Windows user session. The target machine does not
 need Docker, PowerShell, or a separately installed .NET runtime.
 
-This is an alpha. All 18 live checks passed locally in the normal user session,
-including bounded reads of real Inbox messages. The tested Colossus `windows_job`
+This is an alpha. All 24 live checks passed locally in the normal user session,
+including writes confined to synthetic PSTs and bounded reads of real Inbox messages.
+The tested Colossus `windows_job`
 AppContainer could not attach. Broader mailbox and Office compatibility remains
 unvalidated. See [Outlook Classic](plugins/outlook-classic/README.md)
 and the [local test report](docs/local-build.md).

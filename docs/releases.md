@@ -7,7 +7,7 @@ logged-in user, with Outlook already open. Keep the entire portable ZIP together
 The package includes .NET; a target-side SDK, PowerShell, and Docker are unnecessary.
 The executable supports `--version`, `--probe`, and `--stdio`.
 
-This read-only alpha does not support new Outlook, Windows services/session 0, or
+This alpha does not support new Outlook, Windows services/session 0, or
 direct COM access from the tested Colossus `windows_job` AppContainer. Its OCI
 signature verifies publisher/content integrity; it does not grant COM access.
 Do not disable isolation as a workaround. Broader mailbox compatibility needs
@@ -75,7 +75,7 @@ mcp:
       command: 'C:\ABSOLUTE\VERIFIED-INSTALLED-PLUGIN\bin\outlook-classic-mcp.exe'
       args: [--stdio]
       workingDirectory: 'C:\ABSOLUTE\VERIFIED-INSTALLED-PLUGIN'
-      allowedTools: [get_status, list_stores, list_folders, search_messages, get_message, list_attachments]
+      allowedTools: [get_status, list_stores, list_folders, get_mail_folders, list_messages, search_messages, get_message, list_attachments]
 ```
 
 Use the actual immutable root returned by `plugins install`; retain required
@@ -83,6 +83,13 @@ signature verification. Select `--skill outlook-classic/mail` and explicitly tel
 the agent to use server `outlook-classic-local`. The existing access policy must
 expose `mcp.search`, `mcp.tools`, and `mcp.call` and authorize their actions. This
 example supplies no provider, approval-mode, or sandbox override.
+
+To enable requested mailbox changes, add only the needed tools to `allowedTools`:
+`mark_message_read`, `move_message`, `archive_message`, `delete_message`,
+`create_draft`, and `update_draft`. `delete_message` moves to Deleted Items and
+refuses permanent deletion. Archive requires an existing selected destination
+folder in the same store. The plugin has no send tool. A timeout can leave an
+in-flight Outlook write completing; inspect the folder or Drafts before retrying.
 
 The portable ZIP is a convenience distribution. Verify its checksum file with
 Cosign before comparing the ZIP's SHA-256:
@@ -144,7 +151,9 @@ unbuilt catalog entries.
 Run PowerShell 7 in STA mode as the logged-in Outlook user, with classic Outlook
 already open. The suite creates two local synthetic PSTs under ignored `.local/`,
 tests 502 bulk messages plus Unicode, attachment, unread-state, and non-mail
-fixtures, and detaches both PSTs afterward. It never sends messages. The optional
+fixtures. It creates and updates one synthetic draft, changes its read state,
+moves and archives it, then verifies soft deletion and removes only that test item
+from the synthetic PST. Both PSTs are detached afterward. It never sends messages. The optional
 Inbox check reads at most three messages and logs only counts and outcomes.
 
 ```powershell

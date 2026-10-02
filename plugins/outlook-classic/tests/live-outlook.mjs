@@ -37,7 +37,9 @@ try {
     const status = await client.call('get_status');
     assert.equal(status.connected, true);
     assert.equal(status.apartment, 'STA');
-    assert.equal(status.readOnly, true);
+    assert.equal(status.readOnly, false);
+    assert.equal(status.supportsSend, false);
+    assert.equal(status.supportsPermanentDelete, false);
     report.metrics.outlookVersion = status.version;
     report.metrics.storeCount = status.storeCount;
   });
@@ -71,11 +73,17 @@ try {
     const nested = await client.call('list_folders', { folderHandle: mainFolder, limit: 50 });
     assert.ok(nested.items.some(item => item.name === 'Nested synthetic folder'));
   });
+  await check('store default-folder discovery exposes the synthetic Inbox, Drafts, and Deleted Items', async () => {
+    const result = await client.call('get_mail_folders', { storeFolderHandle: handle('folder', primary.storeId, primary.rootEntryId) });
+    for (const role of ['inbox', 'drafts', 'deletedItems'])
+      assert.ok(result.items.some(item => item.role === role && item.folderHandle));
+    await client.rejected('get_mail_folders', { storeFolderHandle: mainFolder });
+  });
   await check('message paging returns only mail items with no duplicates', async () => {
     const all = [];
     let offset = 0;
     for (let page = 0; page < 10; page++) {
-      const result = await client.call('search_messages', { folderHandle: mainFolder, limit: 1, offset });
+      const result = await client.call('list_messages', { folderHandle: mainFolder, limit: 1, offset });
       assert.ok(result.items.length <= 1 && result.scanned <= 500);
       all.push(...result.items);
       if (result.nextOffset === null) break;
@@ -178,6 +186,66 @@ try {
     assert.equal(result.items.length, 1);
     const message = await client.call('get_message', { messageHandle: result.items[0].messageHandle, maxBodyChars: 0 });
     assert.equal(message.subject, 'Secondary PST synthetic message');
+  });
+  let draft;
+  let draftFolder;
+  let deletedFolder;
+  const archiveFolder = folderHandle(primary, primary.folders.archive);
+  const emptyFolder = folderHandle(primary, primary.folders.empty);
+  await check('create and update an unsent draft only in the selected synthetic PST', async () => {
+    const roles = (await client.call('get_mail_folders', { storeFolderHandle: handle('folder', primary.storeId, primary.rootEntryId) })).items;
+    draftFolder = roles.find(item => item.role === 'drafts').folderHandle;
+    deletedFolder = roles.find(item => item.role === 'deletedItems').folderHandle;
+    draft = await client.call('create_draft', {
+      storeFolderHandle: handle('folder', primary.storeId, primary.rootEntryId),
+      to: 'test@example.invalid', subject: fixture.mutationSubject, body: 'Synthetic unsent draft.'
+    });
+    assert.equal(draft.folderHandle, draftFolder);
+    assert.equal(draft.sent, false);
+    const listed = await client.call('list_messages', { folderHandle: draftFolder, limit: 50 });
+    assert.ok(listed.items.some(item => item.messageHandle === draft.messageHandle));
+    await client.rejected('update_draft', { messageHandle: draft.messageHandle, subject: 'x'.repeat(513) });
+    const updated = await client.call('update_draft', {
+      messageHandle: draft.messageHandle, subject: fixture.mutationSubject + ' edited', body: 'Updated synthetic draft.'
+    });
+    assert.equal(updated.subject, fixture.mutationSubject + ' edited');
+    assert.equal(updated.sent, false);
+    draft = updated;
+    report.metrics.syntheticDraftCreated = 1;
+  });
+  await check('read-state changes require the current synthetic source folder', async () => {
+    await client.rejected('mark_message_read', { messageHandle: draft.messageHandle, sourceFolderHandle: mainFolder, read: true });
+    const unread = await client.call('mark_message_read', { messageHandle: draft.messageHandle, sourceFolderHandle: draftFolder, read: false });
+    assert.equal(unread.read, false);
+    draft.messageHandle = unread.messageHandle;
+    const read = await client.call('mark_message_read', { messageHandle: draft.messageHandle, sourceFolderHandle: draftFolder, read: true });
+    assert.equal(read.read, true);
+    draft.messageHandle = read.messageHandle;
+  });
+  await check('move and archive stay inside the selected synthetic store', async () => {
+    await client.rejected('move_message', {
+      messageHandle: draft.messageHandle, sourceFolderHandle: draftFolder,
+      destinationFolderHandle: folderHandle(fixture.stores[1], fixture.stores[1].folders.mail)
+    });
+    const moved = await client.call('move_message', {
+      messageHandle: draft.messageHandle, sourceFolderHandle: draftFolder, destinationFolderHandle: emptyFolder
+    });
+    assert.equal(moved.folderHandle, emptyFolder);
+    await client.rejected('update_draft', { messageHandle: moved.messageHandle, subject: 'not a draft' });
+    const archived = await client.call('archive_message', {
+      messageHandle: moved.messageHandle, sourceFolderHandle: emptyFolder, archiveFolderHandle: archiveFolder
+    });
+    assert.equal(archived.folderHandle, archiveFolder);
+    assert.ok((await client.call('list_messages', { folderHandle: archiveFolder })).items.some(item => item.messageHandle === archived.messageHandle));
+    draft.messageHandle = archived.messageHandle;
+  });
+  await check('delete moves to Deleted Items and refuses permanent deletion', async () => {
+    await client.rejected('delete_message', { messageHandle: draft.messageHandle, sourceFolderHandle: mainFolder });
+    const deleted = await client.call('delete_message', { messageHandle: draft.messageHandle, sourceFolderHandle: archiveFolder });
+    assert.equal(deleted.folderHandle, deletedFolder);
+    assert.equal(deleted.permanent, false);
+    assert.ok((await client.call('list_messages', { folderHandle: deletedFolder })).items.some(item => item.messageHandle === deleted.messageHandle));
+    await client.rejected('delete_message', { messageHandle: deleted.messageHandle, sourceFolderHandle: deletedFolder });
   });
   // Explicitly opted in by the local runner. Content is transient, never output or saved.
   if (fixture.liveInbox) await check('default Inbox bounded live reads preserve unread flags (no content logged)', async () => {

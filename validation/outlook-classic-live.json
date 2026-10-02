@@ -1,96 +1,125 @@
 {
   "schemaVersion": 1,
-  "sourceFingerprint": "17842d297c118e8d428b0ef293e836897d5cb6e0c5a6e2e3598a95c033c4a0c1",
-  "baseVersion": "0.1.0-alpha.3",
-  "testedVersion": "0.1.0-alpha.3",
+  "sourceFingerprint": "cc2bfd5bb80d30393d5ad15bbeb90dd99a3c5ffd4c668fe1765c863bc8755b2a",
+  "baseVersion": "0.1.0-alpha.4",
+  "testedVersion": "0.1.0-alpha.4",
   "scope": "Classic Outlook in the interactive user session; AppContainer and new Outlook are unsupported.",
   "report": {
-    "startedAt": "2026-10-01T13:20:04.273Z",
+    "startedAt": "2026-10-02T10:19:15.903Z",
     "checks": [
       {
         "name": "live COM status uses STA and reports classic Outlook",
         "status": "passed",
-        "elapsedMs": 176
+        "elapsedMs": 167
       },
       {
         "name": "store pagination discovers both synthetic PSTs without duplicates",
         "status": "passed",
-        "elapsedMs": 1094
+        "elapsedMs": 688
       },
       {
         "name": "folder enumeration and paging preserve Unicode and nested folders",
         "status": "passed",
-        "elapsedMs": 181
+        "elapsedMs": 229
+      },
+      {
+        "name": "store default-folder discovery exposes the synthetic Inbox, Drafts, and Deleted Items",
+        "status": "passed",
+        "elapsedMs": 89
       },
       {
         "name": "message paging returns only mail items with no duplicates",
         "status": "passed",
-        "elapsedMs": 333
+        "elapsedMs": 363
       },
       {
         "name": "literal Unicode and apostrophe subject filters do not become queries",
         "status": "passed",
-        "elapsedMs": 168
+        "elapsedMs": 171
       },
       {
         "name": "unread-only filter returns the expected unread fixtures",
         "status": "passed",
-        "elapsedMs": 81
+        "elapsedMs": 78
       },
       {
         "name": "empty folders and offsets past the end return empty terminal pages",
         "status": "passed",
-        "elapsedMs": 78
+        "elapsedMs": 73
       },
       {
         "name": "large-folder scan stops at 500 and resumes on the next page",
         "status": "passed",
-        "elapsedMs": 1985
+        "elapsedMs": 1980
       },
       {
         "name": "body omission, content bounds, and untrusted-data marker work on live items",
         "status": "passed",
-        "elapsedMs": 379
+        "elapsedMs": 342
       },
       {
         "name": "Unicode truncation does not split an emoji surrogate pair",
         "status": "passed",
-        "elapsedMs": 59
+        "elapsedMs": 64
       },
       {
         "name": "attachment metadata and pagination preserve names without exporting files",
         "status": "passed",
-        "elapsedMs": 305
+        "elapsedMs": 269
       },
       {
         "name": "non-mail and nonexistent COM item handles fail safely",
         "status": "passed",
-        "elapsedMs": 121
+        "elapsedMs": 100
       },
       {
         "name": "handles from a second PST resolve within the correct store",
         "status": "passed",
-        "elapsedMs": 116
+        "elapsedMs": 110
+      },
+      {
+        "name": "create and update an unsent draft only in the selected synthetic PST",
+        "status": "passed",
+        "elapsedMs": 524
+      },
+      {
+        "name": "read-state changes require the current synthetic source folder",
+        "status": "passed",
+        "elapsedMs": 176
+      },
+      {
+        "name": "move and archive stay inside the selected synthetic store",
+        "status": "passed",
+        "elapsedMs": 329
+      },
+      {
+        "name": "delete moves to Deleted Items and refuses permanent deletion",
+        "status": "passed",
+        "elapsedMs": 246
       },
       {
         "name": "default Inbox bounded live reads preserve unread flags (no content logged)",
         "status": "passed",
-        "elapsedMs": 6101
+        "elapsedMs": 2846
       },
       {
         "name": "MCP shutdown leaves Outlook available and handles survive a new process",
         "status": "passed",
-        "elapsedMs": 770
+        "elapsedMs": 793
       },
       {
         "name": "all synthetic unread flags still match after the live tool suite",
         "status": "passed",
-        "elapsedMs": 165
+        "elapsedMs": 159
       },
       {
         "name": "MCP exits cleanly with no diagnostic output",
         "status": "passed",
-        "elapsedMs": 41
+        "elapsedMs": 38
+      },
+      {
+        "name": "only the test-created synthetic draft was removed after Deleted Items verification",
+        "status": "passed"
       },
       {
         "name": "independent COM snapshots show unchanged fixture counts, bodies, unread flags, and modification times",
@@ -101,14 +130,15 @@
       "outlookVersion": "16.0.0.20326",
       "storeCount": 18,
       "bulkMessages": 502,
+      "syntheticDraftCreated": 1,
       "realMessagesRead": 2,
       "realUnreadMessagesChecked": 2
     },
     "personalContentLogged": false,
-    "completedAt": "2026-10-01T13:20:16.819Z",
+    "completedAt": "2026-10-02T10:19:26.127Z",
     "passed": true,
-    "executableSha256": "bd24bc17e5287f9fef5677f41c899451cc91bd57c995327b51dbaaf5072e2199",
-    "runtimeSha256": "246d05838a8c1a232b48f5fbdbd6e57b381526bfe919921f396a4ae41c7122b3",
+    "executableSha256": "000e1507bd4dc2065cde48c58c061c30cbbd71f3caf5df94597fcbe3c1cd8072",
+    "runtimeSha256": "5dc0ebe7557f05a79bc1b28a6d2015ecf34cb3df1f06aabc0e9efbff81173c0e",
     "osVersion": "10.0.22000.0",
     "executionMode": "interactive Windows user session; not AppContainer",
     "syntheticStoresDetached": true

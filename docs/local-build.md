@@ -1,5 +1,35 @@
 # Local Outlook build and existing alternatives
 
+## Live acceptance on 2026-10-02
+
+The `0.1.0-alpha.4` Windows x64 build passed all 24 local live checks against
+classic Outlook `16.0.0.20326` in the interactive user session. The
+[sanitized report](../validation/outlook-classic-live.json) binds the tested
+source and runtime and contains no personal message content. The MCP protocol
+test confirmed all 14 tool names, read/write and destructive annotations,
+argument validation, and the absence of any send tool.
+
+The real Outlook suite listed mail directly, resolved standard folders, created
+and edited one unsent draft in a synthetic PST, changed its read state, moved it,
+archived it, and moved it to Deleted Items. It rejected a wrong source folder,
+cross-store move, draft update outside Drafts, and permanent deletion. The runner
+then removed only that exact test-created item from the synthetic PST. Independent
+COM snapshots showed the original fixture counts, bodies, unread flags, and
+modification times unchanged. Both test PSTs detached cleanly. The suite also
+performed bounded reads of two real Inbox messages without changing their unread
+state; no personal mail was written or logged.
+
+The real Colossus 0.11.4 / `gpt-6-luna` agent also tested the new source skill and
+the local alpha.4 MCP executable against the synthetic PST. It used `list_messages`
+for a plain listing, reported all three expected fixture subjects, read a bounded
+body, and left the fixture unchanged. The run used a test-only explicit MCP
+registration and the already established interactive-user test policy; it did not
+install a signed alpha.4 package or test automatic plugin MCP discovery.
+
+The tested Colossus `windows_job` AppContainer still cannot attach to
+Outlook COM, and automatic plugin MCP registration in Colossus 0.11.4 is still
+blocked by the host issue described in [installation](releases.md).
+
 ## Live acceptance on 2026-10-01
 
 The `0.1.0-alpha.3` Windows x64 build passed all 18 live acceptance checks against
@@ -79,7 +109,7 @@ deployment. Current publication and installation details are in [releases.md](re
 | Colossus package validation | Passed with an empty diagnostics list |
 | OCI packaging | Passed using the adjacent Colossus CLI |
 
-The alpha exposes `get_status`, `list_stores`, `list_folders`, `search_messages`,
+The historical read-only build exposed `get_status`, `list_stores`, `list_folders`, `search_messages`,
 `get_message`, and `list_attachments`. It has no send, draft, move, delete, attachment
 download, or mark-read implementation. It does not start or quit Outlook, modify
 Office security settings, or write mailbox content to logs.

@@ -1,6 +1,6 @@
 # Outlook Classic plugin
 
-Status: read-only alpha, base version `0.1.0-alpha.3`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
+Status: capability alpha, base version `0.1.0-alpha.4`; CI appends a unique preview build suffix. Target the legacy environment: Windows 11 with
 **classic Outlook for Windows**, a configured mail profile, and a signed-in
 interactive user. The proposed plugin ID is `outlook-classic`, with MCP server ID
 `outlook-classic/mail` and skill ID `outlook-classic/mail`.
@@ -27,7 +27,7 @@ $build = Get-Content -Raw .local/last-outlook-build.json | ConvertFrom-Json
 & $build.executable --stdio    # MCP transport; do not type ordinary text here
 ```
 
-All six read-only tools in the table below are implemented. Discovery never
+All 14 tools in the table below are implemented. Discovery never
 connects to Outlook; only a tool call or `--probe` attaches. Outlook must already
 be open, and the process must run in an execution context that can access its
 running COM object. The server never starts Outlook or calls `Quit`.
@@ -39,9 +39,9 @@ deployment. Do not disable isolation as an installation workaround. See the
 [build report](../../docs/local-build.md) for test scope and the bridge follow-up.
 
 Main-branch CI publishes signed OCI previews to GHCR and adds verified digests to
-the catalog. The Windows executable is not Authenticode-signed. All 18 local live
-checks passed on 2026-10-01, covering two synthetic PSTs and bounded reads of two
-real unread Inbox messages. Publication requires evidence matching the current
+the catalog. The Windows executable is not Authenticode-signed. All 24 local live
+checks passed on 2026-10-02 for alpha.4, including write tests confined to
+synthetic PSTs. Publication requires evidence matching the current
 sources. Broader Office and mailbox compatibility remains unvalidated. See the
 [release and installation guide](../../docs/releases.md).
 
@@ -125,7 +125,7 @@ The staged package's `mcp.json` contains:
 ```
 
 The source manifest is under `package/`; the build adds the executable to the
-staged package. This alpha persists no mailbox state or attachments. Plugin files
+staged package. This alpha persists no mailbox state outside Outlook and exports no attachments. Plugin files
 remain immutable; future deliberate state belongs in `${PLUGIN_DATA}`.
 Never bundle a PST/OST, mailbox credentials,
 personal mail samples, or the user's Outlook profile.
@@ -137,37 +137,47 @@ uses opaque store/item handles, and exposes bounded numeric offsets. Those offse
 are best-effort positions, not snapshot cursors. Keep stdout
 strictly MCP protocol data and send redacted diagnostics to stderr.
 
-## Initial tool surface
+## Tool surface
 
-Start with a small read-only release and add writes in a separately reviewed
-release. Every call has bounded input, time, result count, and output size.
+Every call has bounded input, time, result count, and output size. Write tools
+require explicit enablement in the host's tool allowlist and policy.
 
 | Implemented tool | Behavior |
 | --- | --- |
 | `get_status` | Report client/profile/session compatibility and actionable failures |
 | `list_stores` | Enumerate mail stores visible in the current profile |
 | `list_folders` | Enumerate bounded folder metadata in an explicit store |
+| `get_mail_folders` | Resolve Inbox, Drafts, Sent Items, and Deleted Items for a selected store |
+| `list_messages` | List an explicit folder without a search query; bounded pagination |
 | `search_messages` | Search an explicit folder with structured filters, bounded results, and pagination |
 | `get_message` | Return selected fields and bounded plain-text content for an explicit message |
 | `list_attachments` | Return metadata; do not save or open files implicitly |
+| `mark_message_read` | Mark one exact message read or unread in its current folder |
+| `move_message` | Move one exact message to an explicit folder in the same store |
+| `archive_message` | Move one exact message to a user-selected existing Archive folder |
+| `delete_message` | Move one exact message to Deleted Items; never permanently delete |
+| `create_draft` | Save a new unsent draft in the selected store's Drafts folder |
+| `update_draft` | Edit fields of an unsent item still in that store's Drafts folder |
 
-Alpha.3 uses compact opaque handles containing a 128-bit store fingerprint, an
+Alpha.4 uses compact opaque handles containing a 128-bit store fingerprint, an
 `EntryID`, and a copying-error checksum. It resolves the store afresh from the
 current Outlook profile on each call and rejects missing or ambiguous matches.
 No handle cache is persisted. The checksum detects mistakes; it grants no authority.
 Reacquire handles from discovery when upgrading from alpha.1/alpha.2. Report
 missing or moved items; do not promise identity survives a
-move. Restrict initial content operations to mail items and preserve unread state.
+move. Read operations preserve unread state; `mark_message_read` changes it only
+on an explicit call. Mutations require the exact current source folder to catch
+stale handles and stay within the selected store.
 Escape structured filter values instead of accepting arbitrary Outlook query or
 PowerShell expressions. Do not return COM objects or unrestricted property bags.
 Show only data the current Outlook profile already permits, including shared
 stores where available. A local adapter does not guarantee offline completeness:
 uncached mail and server searches can depend on Outlook's existing connection.
 
-Later phases may add bounded attachment export, draft creation/update, and
-explicit send/reply/move operations. Draft creation already writes to the mailbox.
-Before enabling writes, establish concrete recipient/content approval through
-Colossus policy, tested outcome handling, and a durable duplicate-prevention design.
+Later phases may add bounded attachment export and explicit send/reply operations.
+Draft creation already writes to the mailbox. Before enabling any send capability,
+establish concrete recipient/content approval through Colossus policy, tested
+outcome handling, and a durable duplicate-prevention design.
 A model-supplied `approved: true` argument is not authorization. After a timeout or
 uncertain send outcome, report uncertainty and reconcile; never blindly retry send.
 
@@ -200,9 +210,10 @@ the user's existing Outlook session.
    Colossus policy; demonstrate safe COM access under that policy.
 2. Exercise MCP initialization, tools/list, tools/call, malformed input, Unicode,
    result limits, timeout, cancellation, and process restart against fixtures.
-3. Test real COM against a dedicated synthetic mailbox in an interactive session:
+3. Test real COM against dedicated synthetic PSTs in an interactive session:
    multiple stores, missing profile, denied access, offline/uncached items,
-   non-mail items, and large folders. Verify no unintended mailbox mutation.
+   non-mail items, large folders, writes, and cleanup. Verify no unintended
+   personal mailbox mutation.
 4. Validate/package the staged plugin with Colossus; pull and verify its signed
    OCI artifact; install disabled, then explicitly enable the digest and tools.
 5. CI publishes only verified alpha artifacts, with the unvalidated mailbox and
