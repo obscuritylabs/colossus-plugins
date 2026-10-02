@@ -4,7 +4,7 @@
   "id": "com.obscuritylabs.colossus.plugins",
   "name": "Colossus Plugins",
   "repository": "https://github.com/obscuritylabs/colossus-plugins",
-  "revision": 6,
+  "revision": 7,
   "plugins": [
     {
       "name": "outlook-classic",
@@ -12,6 +12,33 @@
       "description": "List and manage classic Outlook email and unsent drafts on Windows through a local COM MCP server.",
       "sourcePath": "plugins/outlook-classic",
       "releases": [
+        {
+          "version": "0.1.0-alpha.4.ci.5.1",
+          "channel": "preview",
+          "releasedAt": "2026-10-02T10:29:49.703Z",
+          "sourceCommit": "fe243ce27ac20e3aba96a624361b8e8b9130c98b",
+          "agentPluginsVersion": "1.0.0",
+          "minColossusVersion": "0.11.4",
+          "yanked": false,
+          "artifacts": [
+            {
+              "reference": "ghcr.io/obscuritylabs/colossus-plugin-outlook-classic@sha256:5ef90c61498bba94fcb3e6b61cfefb09473ab58af05abf133b5ff3aab758b310",
+              "platform": {
+                "os": "windows",
+                "architecture": "amd64",
+                "minimumOsVersion": "Windows 11"
+              },
+              "requirements": [
+                "Classic Outlook for Windows x64, already running with a configured MAPI profile.",
+                "Same logged-in interactive Windows user session as Outlook; not a Windows service or container.",
+                "Direct COM is unsupported inside the tested Colossus windows_job/AppContainer boundary.",
+                "Lists and manages mail, read state, same-store moves, soft deletion, and unsent drafts; no sending, permanent deletion, or attachment downloads.",
+                "OCI package signed with GitHub OIDC; Windows executable is not Authenticode-signed.",
+                "Colossus 0.11.4 rejects its injected plugin environment variables during stdio registration; automatic plugin MCP discovery is blocked. Explicit operator MCP registration is a separate test route."
+              ]
+            }
+          ]
+        },
         {
           "version": "0.1.0-alpha.4.ci.4.1",
           "channel": "preview",
